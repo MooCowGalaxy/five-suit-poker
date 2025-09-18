@@ -9,7 +9,6 @@ export class Player extends Schema {
     @type('number') playerId: number;
     @type('string') username: string;
     @type('boolean') ready: boolean = false;
-    @type('boolean') inGame: boolean = false;
     @type('boolean') spectator: boolean = false;
     @type('number') chips: number;
     @view() @type([Card]) cards: ArraySchema<Card> = new ArraySchema<Card>();

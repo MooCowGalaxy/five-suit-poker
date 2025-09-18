@@ -13,6 +13,7 @@ export class FiveSuits extends Room<FiveSuitsState> {
 
         const eventHandlers = {
             ready: this.state.onReady,
+            spectate: this.state.onSpectate,
             setConfig: this.state.setConfig,
             message: this.state.onMessage,
         };
