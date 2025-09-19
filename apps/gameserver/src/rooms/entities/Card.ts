@@ -9,4 +9,8 @@ export class Card extends Schema {
         this.value = value;
         this.suit = suit;
     }
+
+    get sortValue(): number {
+        return (this.value === 1 ? 14 : this.value) * 5 + this.suit;
+    }
 }

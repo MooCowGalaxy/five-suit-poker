@@ -192,8 +192,8 @@ export class FiveSuitsGame extends Schema {
             p.cards.forEach(card => p.publicCards.push(card));
         });
 
-        // complex hand evaluation logic would go here to determine the actual winner(s)
-        const winners = contenders.length > 0 ? [contenders[0]] : [];
+        // check hands
+        const winners = this.calculateWinners(contenders);
         this.endHand(winners);
     }
 
@@ -207,5 +207,23 @@ export class FiveSuitsGame extends Schema {
 
         this.gameState = GameState.PRE_HAND;
         this.clock.setTimeout(() => this.startHand(), 5000);
+    }
+
+    private calculateWinners(contenders: Player[]): Player[] {
+        // logic for determining value of hand, each player is assigned 2-length number array [hand, highCard], sorted by hand and then high card
+        if (contenders.length === 1) return contenders;
+
+        const playerHands: [Player, [number, number]][] = [];
+
+        contenders.forEach(contender => {
+            playerHands.push([contender, contender.detectHand(this.communityCards)]);
+        });
+
+        playerHands.sort((a, b) => {
+            if (a[1][0] !== b[1][0]) return b[1][0] - a[1][0]; // sort by hand
+            return b[1][1] - a[1][1]; // sort by high card
+        });
+
+        return playerHands.filter(p => p[1][0] === playerHands[0][1][0] && p[1][1] === playerHands[0][1][1]).map(p => p[0]);
     }
 }
