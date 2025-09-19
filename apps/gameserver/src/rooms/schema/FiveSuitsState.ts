@@ -13,11 +13,16 @@ export class FiveSuitsState extends Schema {
     clock: Clock;
     playerIdCounter: number = 0;
     countdownInterval: Delayed;
+    tokenPlayerIdMap: { [key: string]: number } = {};
     @type("string") roomState: string = 'lobby'; // lobby, countdown, or game
     @type("int8") roomCountdown: number = -1; // tenths of a second
     @type({ map: Player }) players = new MapSchema<Player>();
     @type(FiveSuitsGame) game: FiveSuitsGame;
     @type(RoomConfig) config: RoomConfig = new RoomConfig();
+
+    generatePlayerId(token: string): number {
+        return this.tokenPlayerIdMap[token] !== undefined ? this.tokenPlayerIdMap[token] : this.playerIdCounter++;
+    }
 
     getPlayer(sessionId: string): Player | null {
         return this.players.values().find(player => player.client.sessionId === sessionId) || null;
@@ -44,7 +49,7 @@ export class FiveSuitsState extends Schema {
             this.countdownInterval?.clear();
             this.roomCountdown = -1;
             this.roomState = 'game';
-            this.game = new FiveSuitsGame([...this.players.values().filter(player => player.ready)], this.config);
+            this.game = new FiveSuitsGame([...this.players.values().filter(player => player.ready)], this.config, this.clock);
         } else {
             this.countdownInterval?.clear();
         }
@@ -60,7 +65,7 @@ export class FiveSuitsState extends Schema {
         const existingPlayer = this.players.values().find(player => player.token === options.token);
         let playerId: number;
         if (!existingPlayer) {
-            playerId = this.playerIdCounter++;
+            playerId = this.generatePlayerId(options.token);
             this.players.set(playerId.toString(), new Player(client, options.token, options.username, playerId));
         } else {
             if (existingPlayer.connected) {
@@ -135,5 +140,13 @@ export class FiveSuitsState extends Schema {
             username: player.username,
             message
         });
+    }
+
+    onAction(sessionId: string, { action, amount }: { action: string; amount: number }) {
+        const player = this.getPlayer(sessionId);
+        if (!player) return;
+        if (!action || action.length > 20) return;
+
+        this.game?.handlePlayerAction(player.playerId, action, amount);
     }
 }

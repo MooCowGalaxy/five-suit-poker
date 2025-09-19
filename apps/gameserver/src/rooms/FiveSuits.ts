@@ -16,6 +16,7 @@ export class FiveSuits extends Room<FiveSuitsState> {
             spectate: this.state.onSpectate,
             setConfig: this.state.setConfig,
             message: this.state.onMessage,
+            action: this.state.onAction,
         };
 
         for (const [eventName, handler] of Object.entries(eventHandlers)) {
