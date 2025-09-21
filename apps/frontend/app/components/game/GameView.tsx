@@ -79,7 +79,10 @@ export default function GameView({ state, selfPlayer }: { state: TFiveSuitsState
                         </div>
                         <p className="text-sm text-green-400">${player.chips}</p>
                         <div className="flex flex-row gap-1 mt-1">
-                            {new Array(2).fill(<BlankCard />).map((cur, index) => player.publicCards.at(index) || cur)}
+                            {new Array(2).fill(<BlankCard />).map((cur, index) => {
+                                console.log(player.publicCards);
+                                return player.publicCards[index] ? <Card value={player.publicCards[index].value} suit={player.publicCards[index].suit} /> : cur
+                            })}
                         </div>
                     </div>
                 ))}
@@ -93,7 +96,7 @@ export default function GameView({ state, selfPlayer }: { state: TFiveSuitsState
                     onPointerUp={() => setIsRevealing(false)}
                     onMouseLeave={() => setIsRevealing(false)}
                 >
-                    {isRevealing ? (
+                    {(isRevealing || (game.gameState >= GameState.SHOWDOWN && !game.playerFolded[selfPlayer.playerId])) ? (
                         selfPlayer.cards.map((card, index) => (
                             <Card key={index} suit={card.suit} value={card.value} />
                         ))

@@ -177,7 +177,7 @@ export class FiveSuitsGame extends Schema {
         }
 
         if (action !== 'raise' && playerIndex === this.actionOn) {
-            this.clock.setTimeout(() => this.endBettingRound(), 100);
+            this.endBettingRound();
             return;
         }
 
@@ -219,7 +219,7 @@ export class FiveSuitsGame extends Schema {
         const contenders = this.players.filter(p => !this.playerFolded.get(p.playerId.toString()));
 
         contenders.forEach(p => {
-            p.cards.forEach(card => p.publicCards.push(card));
+            p.cards.forEach(card => p.publicCards.push(new Card(card.value, card.suit)));
         });
 
         // check hands

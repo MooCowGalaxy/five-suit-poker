@@ -7,7 +7,7 @@ import { FiveSuits } from "./rooms/FiveSuits";
 matchMaker.controller.getCorsHeaders = function (req) {
     const domains = [
         'https://poker.c4n.net',
-        'http://localhost:2567'
+        'http://localhost:5173'
     ];
 
     let res: any = {
