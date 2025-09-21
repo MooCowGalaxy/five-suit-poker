@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { Client, Room } from 'colyseus.js';
-import type { FiveSuitsState } from "@c4n/gameserver/src/rooms/schema/FiveSuitsState";
+import type { TFiveSuitsState } from "@c4n/gameserver/src/rooms/schema/FiveSuitsState";
 import { BACKEND_BASE_URL } from '~/env';
 import { getToken, getUsername } from '~/lib/utils';
 import { toast } from 'sonner';
@@ -13,7 +13,7 @@ interface RoomContextType {
     room: Room;
     join: (roomId: string, create: boolean) => Promise<string | undefined>;
     joinError: boolean;
-    state?: FiveSuitsState;
+    state?: TFiveSuitsState;
 }
 
 export const RoomContext = createContext<RoomContextType>({} as RoomContextType);
@@ -31,7 +31,7 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
     const [joinError, setJoinError] = React.useState(false);
     const [isConnecting, setIsConnecting] = React.useState(false);
     const [isConnected, setIsConnected] = React.useState(false);
-    const [state, setState] = React.useState<ReturnType<FiveSuitsState['toJSON']>>();
+    const [state, setState] = React.useState<TFiveSuitsState>();
 
     const join = async (roomId: string, create: boolean = false) => {
         if (hasActiveJoinRequest) {
@@ -93,7 +93,7 @@ export function RoomProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <RoomContext.Provider value={{ isConnecting, isConnected, room, join, joinError, state: state as (FiveSuitsState | undefined) }}>
+        <RoomContext.Provider value={{ isConnecting, isConnected, room, join, joinError, state: state as (TFiveSuitsState | undefined) }}>
             {children}
         </RoomContext.Provider>
     );

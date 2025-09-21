@@ -1,19 +1,35 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
-import { Player } from '../entities/Player';
+import { Player, TPlayer } from '../entities/Player';
 import { RoomConfig } from './RoomConfig';
 import { shuffle } from '../../utils';
-import { Deck } from '../entities/Deck';
+import { Deck, TDeck } from '../entities/Deck';
 import { Card } from '../entities/Card';
 import { Clock } from 'colyseus';
 
-enum GameState {
+export enum GameState {
     PRE_HAND = 0,
     PRE_FLOP = 1,
     FLOP = 2,
     TURN = 3,
     RIVER = 4,
     SHOWDOWN = 5,
+    WINNER = 6
 }
+
+export type TFiveSuitsGame = {
+    players: TPlayer[];
+    deck: TDeck;
+    playerTurn: number;
+    pot: number;
+    communityCards: Card[];
+    gameState: GameState;
+    dealerPosition: number;
+    currentBet: number;
+    actionOn: number;
+    playerBets: { [key: string]: number };
+    playerFolded: { [key: string]: boolean };
+    timeRemaining: number;
+};
 
 export class FiveSuitsGame extends Schema {
     @type([Player]) players: ArraySchema<Player> = new ArraySchema<Player>();
@@ -52,8 +68,7 @@ export class FiveSuitsGame extends Schema {
         this.startHand();
     }
 
-    private startHand() {
-        this.gameState = GameState.PRE_FLOP;
+    private reset() {
         this.pot = 0;
         this.deck.reset();
         this.communityCards.clear();
@@ -65,6 +80,12 @@ export class FiveSuitsGame extends Schema {
             this.playerFolded.set(p.playerId.toString(), false);
             this.playerBets.set(p.playerId.toString(), 0);
         });
+    }
+
+    private startHand() {
+        this.reset();
+
+        this.gameState = GameState.PRE_FLOP;
 
         this.dealerPosition = (this.dealerPosition + 1) % this.players.length;
 
@@ -77,7 +98,9 @@ export class FiveSuitsGame extends Schema {
 
         for (let i = 0; i < 2; i++) {
             for (const player of this.players) {
-                player.cards.push(this.deck.draw());
+                const newCard = this.deck.draw();
+                player.cards.push(newCard);
+                player.client.view.add(newCard);
             }
         }
 
@@ -97,19 +120,11 @@ export class FiveSuitsGame extends Schema {
     private startTurn() {
         // skip players who are folded or all-in
         while (this.playerFolded.get(this.players[this.playerTurn].playerId.toString()) || this.players[this.playerTurn].chips === 0) {
-            if (this.playerTurn === this.actionOn) {
-                this.clock.setTimeout(() => this.endBettingRound(), 100);
-                return;
-            }
             this.playerTurn = (this.playerTurn + 1) % this.players.length;
         }
 
-        if (this.playerTurn === this.actionOn) {
-            this.clock.setTimeout(() => this.endBettingRound(), 100);
-            return;
-        }
-
         this.timeRemaining = this.config.timePerTurn;
+        this.turnTimeout?.clear();
         this.turnTimeout = this.clock.setInterval(() => {
             this.timeRemaining--;
             if (this.timeRemaining === 0) {
@@ -120,7 +135,7 @@ export class FiveSuitsGame extends Schema {
 
     handlePlayerAction(playerId: number, action: string, amount: number) {
         const playerIndex = this.players.findIndex(p => p.playerId === playerId);
-        if (playerIndex !== this.playerTurn) return;
+        if (playerIndex !== this.playerTurn || this.gameState === GameState.PRE_HAND || this.gameState === GameState.SHOWDOWN || this.gameState === GameState.WINNER) return;
 
         if (this.turnTimeout) this.turnTimeout.clear();
 
@@ -146,7 +161,7 @@ export class FiveSuitsGame extends Schema {
                 this.playerBets.set(playerId.toString(), totalBet);
                 this.pot += raiseAmount;
                 this.currentBet = totalBet;
-                this.actionOn = playerIndex;
+                this.actionOn = (playerIndex - 1 + this.players.length) % this.players.length;
                 break;
             case 'check':
                 if (this.currentBet > bet) return;
@@ -161,6 +176,11 @@ export class FiveSuitsGame extends Schema {
             return;
         }
 
+        if (action !== 'raise' && playerIndex === this.actionOn) {
+            this.clock.setTimeout(() => this.endBettingRound(), 100);
+            return;
+        }
+
         this.playerTurn = (this.playerTurn + 1) % this.players.length;
         this.startTurn();
     }
@@ -169,7 +189,6 @@ export class FiveSuitsGame extends Schema {
         this.gameState++;
         this.playerBets.forEach((_, clientId) => this.playerBets.set(clientId, 0));
         this.currentBet = 0;
-        this.actionOn = -1;
 
         if (this.gameState > GameState.RIVER) {
             this.showdown();
@@ -177,15 +196,21 @@ export class FiveSuitsGame extends Schema {
         }
 
         if (this.gameState === GameState.FLOP) {
-            this.deck.draw(); // burn card
+            // this.deck.draw(); // burn card
             this.communityCards.push(this.deck.draw(), this.deck.draw(), this.deck.draw());
         } else if (this.gameState === GameState.TURN || this.gameState === GameState.RIVER) {
-            this.deck.draw(); // burn card
+            // this.deck.draw(); // burn card
             this.communityCards.push(this.deck.draw());
         }
 
-        this.playerTurn = (this.dealerPosition + 1) % this.players.length;
-        this.actionOn = this.playerTurn;
+        this.playerTurn = (this.playerTurn + 1) % this.players.length;
+
+        let lastToAct = this.dealerPosition;
+        while (this.playerFolded.get(this.players[lastToAct].playerId.toString())) {
+            lastToAct = (lastToAct - 1 + this.players.length) % this.players.length;
+        }
+        this.actionOn = lastToAct;
+
         this.startTurn();
     }
 
@@ -198,11 +223,15 @@ export class FiveSuitsGame extends Schema {
         });
 
         // check hands
-        const winners = this.calculateWinners(contenders);
-        this.endHand(winners);
+        this.clock.setTimeout(() => {
+            const winners = this.calculateWinners(contenders);
+            this.endHand(winners);
+        }, 1000);
     }
 
     private endHand(winners: Player[]) {
+        this.gameState = GameState.WINNER;
+
         if (winners.length > 0) {
             const prize = this.pot / winners.length;
             winners.forEach(winner => {
@@ -210,7 +239,6 @@ export class FiveSuitsGame extends Schema {
             });
         }
 
-        this.gameState = GameState.PRE_HAND;
         this.clock.setTimeout(() => this.startHand(), 5000);
     }
 

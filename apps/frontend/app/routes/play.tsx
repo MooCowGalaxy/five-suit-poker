@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Button } from '~/components/ui/button';
 import { MainContainer } from '~/components/MainContainer';
-import type { Player } from '@c4n/gameserver/src/rooms/entities/Player';
+import type { TPlayer } from '@c4n/gameserver/src/rooms/entities/Player';
 import LobbyGroup from '~/components/game/lobby/LobbyGroup';
 import { Info } from 'lucide-react';
+import GameView from '~/components/game/GameView';
+import GameFooter from '~/components/game/GameFooter';
 
 export function meta({}: Route.MetaArgs) {
     return [
@@ -50,7 +52,7 @@ export default function Play({
         );
     }
 
-    const selfPlayer: Player = Object.values(state?.players || {}).find((p: Player) => p.self);
+    const selfPlayer: TPlayer | undefined = Object.values(state?.players || {}).find(p => p.self);
 
     if (!isConnected || !room || !state || !selfPlayer) {
         return <LoadingScreen message="Connecting..." />;
@@ -62,7 +64,7 @@ export default function Play({
             <div className="p-2 border-b flex-initial flex flex-row gap-2 justify-center items-center align-middle">
                 <span className="block rounded-full w-2 h-2 bg-green-500" />
                 <button className="hover:underline cursor-pointer">{window.location.hostname}/p/{room.roomId}</button>
-                <span className="text-gray-500">({Object.values(state.players).filter((p: Player) => p.connected).length})</span>
+                <span className="text-gray-500">({Object.values(state.players).filter(p => p.connected).length})</span>
             </div>
 
             {/* main views */}
@@ -71,9 +73,9 @@ export default function Play({
                 {state.roomState === 'lobby' && (
                     <div className="p-2 grid gap-4">
                         <h1 className="text-center font-semibold text-2xl mb-4">Lobby</h1>
-                        <LobbyGroup players={Object.values(state.players).filter((p: Player) => p.connected && p.ready && !p.spectator)} name="Ready" />
-                        <LobbyGroup players={Object.values(state.players).filter((p: Player) => p.connected && !p.ready && !p.spectator)} name="Not ready" />
-                        <LobbyGroup players={Object.values(state.players).filter((p: Player) => p.connected && p.spectator)} name="Spectating" />
+                        <LobbyGroup players={Object.values(state.players).filter(p => p.connected && p.ready && !p.spectator)} name="Ready" />
+                        <LobbyGroup players={Object.values(state.players).filter(p => p.connected && !p.ready && !p.spectator)} name="Not ready" />
+                        <LobbyGroup players={Object.values(state.players).filter(p => p.connected && p.spectator)} name="Spectating" />
                     </div>
                 )}
 
@@ -89,6 +91,11 @@ export default function Play({
                             </div>)}
                         </div>
                     </div>
+                )}
+
+                {/* game */}
+                {state.roomState === 'game' && (
+                    <GameView state={state} selfPlayer={selfPlayer} />
                 )}
             </div>
 
@@ -119,6 +126,9 @@ export default function Play({
                             </Button>}
                     </div>
                 )}
+
+                {/* game footer */}
+                {state.roomState === 'game' && <GameFooter room={room} state={state} selfPlayer={selfPlayer} />}
             </div>
         </main>
     );

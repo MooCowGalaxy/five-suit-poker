@@ -1,7 +1,19 @@
 import { Schema, type, view, ArraySchema } from '@colyseus/schema';
 import { Client } from '@colyseus/core';
-import { Card } from './Card';
+import { Card, TCard } from './Card';
 import { isDrain, findBestFlush, findBestStraight, findBestFullHouseDrain } from '../../utils';
+
+export type TPlayer = {
+    connected: boolean;
+    playerId: number;
+    username: string;
+    ready: boolean;
+    spectator: boolean;
+    chips: number;
+    cards: TCard[];
+    publicCards: TCard[];
+    self: boolean;
+};
 
 export class Player extends Schema {
     client: Client;
@@ -58,7 +70,7 @@ export class Player extends Schema {
         // 11: straight flush
         if (bestStraightCards && bestFlushCards) {
             const flushSuit = bestFlushCards[0].suit;
-            // check if the cards forming the best straight are all of the flush suit
+            // check if the cards forming the best straight are all the flush suit
             if (bestStraightCards.every(c => c.suit === flushSuit)) {
                 return [11, bestStraightCards[0].sortValue];
             }

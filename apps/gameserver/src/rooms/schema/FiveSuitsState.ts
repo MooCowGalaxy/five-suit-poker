@@ -1,12 +1,22 @@
 import { Client } from "@colyseus/core";
 import { Schema, type, MapSchema, StateView } from "@colyseus/schema";
-import { Player } from '../entities/Player';
+import { Player, TPlayer } from '../entities/Player';
 import { DisconnectCode } from '../../constants';
 import { validateToken, validateUsername } from '../../utils';
 import { FiveSuits } from '../FiveSuits';
-import { RoomConfig } from './RoomConfig';
+import { RoomConfig, TRoomConfig } from './RoomConfig';
 import { Clock, Delayed } from 'colyseus';
-import { FiveSuitsGame } from './FiveSuitsGame';
+import { FiveSuitsGame, TFiveSuitsGame } from './FiveSuitsGame';
+
+export type TFiveSuitsState = {
+    roomState: string;
+    roomCountdown: number;
+    players: { [key: string]: TPlayer };
+    game: TFiveSuitsGame;
+    config: TRoomConfig;
+};
+
+const COUNTDOWN_TIMER = 3;
 
 export class FiveSuitsState extends Schema {
     room: FiveSuits;
@@ -35,7 +45,7 @@ export class FiveSuitsState extends Schema {
             this.players.values().filter(p => p.connected && !p.spectator && p.ready).toArray().length >= 2) {
             if (this.roomState === 'countdown' && !reset) return;
 
-            this.roomCountdown = 10;
+            this.roomCountdown = COUNTDOWN_TIMER;
             this.roomState = 'countdown';
             this.countdownInterval?.clear();
             this.countdownInterval = this.clock.setInterval(this.countdownTick.bind(this), 1000);
@@ -87,7 +97,7 @@ export class FiveSuitsState extends Schema {
             playerId = existingPlayer.playerId;
         }
 
-        client.view = new StateView();
+        client.view = new StateView(true);
         client.view.add(this.players.get(playerId.toString()));
         existingPlayer.ready = false;
         this.checkForCountdown(true);

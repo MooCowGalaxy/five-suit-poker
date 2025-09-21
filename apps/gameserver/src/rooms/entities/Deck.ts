@@ -2,6 +2,10 @@ import { Schema, type } from '@colyseus/schema';
 import { Card } from './Card';
 import { shuffle } from '../../utils';
 
+export type TDeck = {
+    remainingCards: number;
+};
+
 export class Deck extends Schema {
     @type('uint8') remainingCards: number;
     cards: Card[];

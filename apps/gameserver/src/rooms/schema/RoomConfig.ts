@@ -1,9 +1,17 @@
 import { Schema, type } from '@colyseus/schema';
 
+export type TRoomConfig = {
+    startingChips: number;
+    blind: number;
+    timePerTurn: number;
+    minRaise: number;
+};
+
 export class RoomConfig extends Schema {
     @type('uint32') startingChips: number = 1000;
     @type('uint32') blind: number = 50;
     @type('uint8') timePerTurn: number = 10;
+    @type('uint32') minRaise: number = 10;
 
     private inRange(value: number, min: number, max: number) {
         return value >= min && value <= max;
