@@ -4,12 +4,21 @@ import { monitor } from "@colyseus/monitor";
 import { playground } from "@colyseus/playground";
 import { FiveSuits } from "./rooms/FiveSuits";
 
-matchMaker.controller.getCorsHeaders = function(req) {
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Vary': '*',
-        // 'Vary': "<header-name>, <header-name>, ...",
+matchMaker.controller.getCorsHeaders = function (req) {
+    const domains = [
+        'https://poker-api.c4n.net',
+        'http://localhost:2567'
+    ];
+
+    let res: any = {
+        'Vary': '*'
+    };
+
+    if (domains.includes(req.headers.origin)) {
+        res['Access-Control-Allow-Origin'] = req.headers.origin;
     }
+
+    return res;
 }
 
 export default config({
