@@ -1,7 +1,16 @@
 import config from "@colyseus/tools";
+import { matchMaker } from 'colyseus';
 import { monitor } from "@colyseus/monitor";
 import { playground } from "@colyseus/playground";
 import { FiveSuits } from "./rooms/FiveSuits";
+
+matchMaker.controller.getCorsHeaders = function(req) {
+    return {
+        'Access-Control-Allow-Origin': '*',
+        'Vary': '*',
+        // 'Vary': "<header-name>, <header-name>, ...",
+    }
+}
 
 export default config({
 
