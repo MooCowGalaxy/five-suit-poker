@@ -29,20 +29,29 @@ export class FiveSuitsState extends Schema {
     }
 
     checkForCountdown(reset: boolean = false) {
-        if (this.players.values().every(player => !player.connected || player.spectator || player.ready)) {
+        if (this.roomState === 'game') return;
+
+        if (this.players.values().every(player => !player.connected || player.spectator || player.ready) &&
+            this.players.values().filter(p => p.connected && !p.spectator && p.ready).toArray().length >= 2) {
             if (this.roomState === 'countdown' && !reset) return;
 
-            this.roomCountdown = 100;
+            this.roomCountdown = 10;
             this.roomState = 'countdown';
             this.countdownInterval?.clear();
-            this.clock.setInterval(this.countdownTick.bind(this), 100);
+            this.countdownInterval = this.clock.setInterval(this.countdownTick.bind(this), 1000);
         } else {
             this.roomCountdown = -1;
             this.roomState = 'lobby';
+            this.countdownInterval?.clear();
         }
     }
 
     countdownTick() {
+        if (this.roomState !== 'countdown') {
+            this.countdownInterval?.clear();
+            return;
+        }
+
         if (this.roomCountdown > 0) {
             this.roomCountdown--;
         } else if (this.roomCountdown === 0) {
@@ -62,11 +71,12 @@ export class FiveSuitsState extends Schema {
             return;
         }
 
-        const existingPlayer = this.players.values().find(player => player.token === options.token);
+        let existingPlayer = this.players.values().find(player => player.token === options.token);
         let playerId: number;
         if (!existingPlayer) {
             playerId = this.generatePlayerId(options.token);
-            this.players.set(playerId.toString(), new Player(client, options.token, options.username, playerId));
+            existingPlayer = new Player(client, options.token, options.username, playerId);
+            this.players.set(playerId.toString(), existingPlayer);
         } else {
             if (existingPlayer.connected) {
                 existingPlayer.client.leave(DisconnectCode.NEW_CONNECTION);
@@ -79,6 +89,13 @@ export class FiveSuitsState extends Schema {
 
         client.view = new StateView();
         client.view.add(this.players.get(playerId.toString()));
+        existingPlayer.ready = false;
+        this.checkForCountdown(true);
+
+        if (this.roomState === 'game' && !this.game.players.some(player => player.playerId === existingPlayer.playerId)) {
+            // we are currently in a game, but new player is spectating
+            existingPlayer.spectator = true;
+        }
     }
 
     removePlayer(client: Client, _consented: boolean) {

@@ -14,6 +14,7 @@ export class Player extends Schema {
     @type('number') chips: number;
     @view() @type([Card]) cards: ArraySchema<Card> = new ArraySchema<Card>();
     @type([Card]) publicCards: ArraySchema<Card> = new ArraySchema<Card>();
+    @view() @type('boolean') self: boolean = true;
 
     constructor(client: Client, token: string, username: string, playerId: number) {
         super();

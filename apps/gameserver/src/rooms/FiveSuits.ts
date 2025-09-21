@@ -4,6 +4,7 @@ import { generateRoomId } from "../utils";
 
 export class FiveSuits extends Room<FiveSuitsState> {
     state = new FiveSuitsState();
+    maxClients = 20;
 
     onCreate(_options: any) {
         this.roomId = generateRoomId();

@@ -5,7 +5,7 @@ const validUsername = /^([a-zA-Z0-9]| |\.){1,18}$/;
 const validToken = /^[a-zA-Z0-9]{32}$/;
 
 export function generateRoomId(): string {
-    return new Array(4).map(() => characters[Math.floor(Math.random() * characters.length)]).join('');
+    return new Array(4).fill(' ').map(() => characters[Math.floor(Math.random() * characters.length)]).join('');
 }
 
 export function validateUsername(username: string): boolean {

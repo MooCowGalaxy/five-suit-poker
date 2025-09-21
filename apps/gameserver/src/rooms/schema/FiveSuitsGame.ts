@@ -30,6 +30,7 @@ export class FiveSuitsGame extends Schema {
     @type('int8') actionOn: number = -1; // index of player whose action would end the betting round
     @type({ map: 'uint32' }) playerBets = new MapSchema<number>();
     @type({ map: 'boolean' }) playerFolded = new MapSchema<boolean>();
+    @type('uint8') timeRemaining: number = 0;
 
     private turnTimeout: any;
 
@@ -108,9 +109,13 @@ export class FiveSuitsGame extends Schema {
             return;
         }
 
-        this.turnTimeout = this.clock.setTimeout(() => {
-            this.handlePlayerAction(this.players[this.playerTurn].playerId, 'fold', 0);
-        }, this.config.timePerTurn * 1000);
+        this.timeRemaining = this.config.timePerTurn;
+        this.turnTimeout = this.clock.setInterval(() => {
+            this.timeRemaining--;
+            if (this.timeRemaining === 0) {
+                this.handlePlayerAction(this.players[this.playerTurn].playerId, 'fold', 0);
+            }
+        }, 1000);
     }
 
     handlePlayerAction(playerId: number, action: string, amount: number) {
